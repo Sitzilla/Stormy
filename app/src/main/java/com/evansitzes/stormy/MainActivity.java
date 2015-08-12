@@ -1,11 +1,16 @@
 package com.evansitzes.stormy;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.squareup.okhttp.Call;
@@ -19,24 +24,52 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
+import butterknife.ButterKnife;
+import butterknife.InjectView;
+
 public class MainActivity extends AppCompatActivity {
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
     private CurrentWeather mCurrentWeather;
 
+    @InjectView(R.id.timeLabel) TextView mTimeLabel;
+    @InjectView(R.id.temperatureLabel) TextView mTemperatureLabel;
+    @InjectView(R.id.humidityValue) TextView mHumidityValue;
+    @InjectView(R.id.precipValue) TextView mPrecipValue;
+    @InjectView(R.id.summaryLabel) TextView mSummaryLabel;
+    @InjectView(R.id.iconImageView) ImageView mIconImageView;
+    @InjectView(R.id.refreshImageView) ImageView mRefreshImageView;
+    @InjectView(R.id.progressBar) ProgressBar mProgressBar;
+
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ButterKnife.inject(this);
 
+        mProgressBar.setVisibility(View.INVISIBLE);
+
+        final double latitude = 36.0764;
+        final double longitude = -94.1608;
+
+        mRefreshImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getForcast(latitude, longitude);
+            }
+        });
+
+        getForcast(latitude, longitude);
+    }
+
+    private void getForcast(double latitude, double longitude) {
         String apiKey = "01f00e0a26cb06602caf2c142df336d2";
-        double latitude = 36.0764;
-        double longitude = -94.1608;
         String forcastUrl = "https://api.forecast.io/forecast/" +
                             apiKey + "/" + latitude + "," + longitude;
 
         if (isNetworkAvailable()) {
-
+            toggleRefresh();
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder()
                     .url(forcastUrl)
@@ -46,16 +79,25 @@ public class MainActivity extends AppCompatActivity {
             call.enqueue(new Callback() {
                 @Override
                 public void onFailure(Request request, IOException e) {
+                    toggleRefresh();
+                    alertUserAboutError();
 
                 }
 
                 @Override
                 public void onResponse(Response response) throws IOException {
+                    toggleRefresh();
                     try {
                         String jsonData = response.body().string();
                         Log.v(TAG, jsonData);
                         if (response.isSuccessful()) {
                             mCurrentWeather = getCurrentDetails(jsonData);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    updateDisplay();
+                                }
+                            });
                         } else {
                             alertUserAboutError();
                         }
@@ -71,8 +113,33 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, getString(R.string.network_unavailable),
                     Toast.LENGTH_LONG).show();
         }
+    }
 
+    private void toggleRefresh() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mProgressBar.getVisibility() == View.INVISIBLE) {
+                    mProgressBar.setVisibility(View.VISIBLE);
+                    mRefreshImageView.setVisibility(View.INVISIBLE);
+                } else {
+                    mProgressBar.setVisibility(View.INVISIBLE);
+                    mRefreshImageView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
 
+    }
+
+    private void updateDisplay() {
+        mTemperatureLabel.setText(mCurrentWeather.getTemperature() + "");
+        mTimeLabel.setText("At " + mCurrentWeather.getFormattedTime() + " it will be");
+        mHumidityValue.setText(mCurrentWeather.getHumidity() + "");
+        mPrecipValue.setText((mCurrentWeather.getPrecipChance() + "%"));
+        mSummaryLabel.setText(mCurrentWeather.getSummary());
+
+        Drawable drawable = getResources().getDrawable(mCurrentWeather.getIconId());
+        mIconImageView.setImageDrawable(drawable);
     }
 
     private CurrentWeather getCurrentDetails(String jsonData) throws JSONException {

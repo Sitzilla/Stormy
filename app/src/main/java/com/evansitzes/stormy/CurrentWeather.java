@@ -85,8 +85,8 @@ public class CurrentWeather {
         mTime = time;
     }
 
-    public double getTemperature() {
-        return mTemperature;
+    public int getTemperature() {
+        return (int)Math.round(mTemperature);
     }
 
     public void setTemperature(double temperature) {
@@ -102,7 +102,7 @@ public class CurrentWeather {
     }
 
     public double getPrecipChance() {
-        return mPrecipChance;
+        return (int)Math.round(mPrecipChance * 100);
     }
 
     public void setPrecipChance(double precipChance) {
