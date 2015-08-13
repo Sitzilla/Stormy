@@ -1,10 +1,12 @@
-package com.evansitzes.stormy;
+package com.evansitzes.stormy.ui;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.Context;
 import android.os.Bundle;
+
+import com.evansitzes.stormy.R;
 
 /**
  * Created by evan on 8/11/15.
